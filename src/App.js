@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import Post from "./Post";
 
 import "./App.css";
-import db from "./firebase";
+import { db, auth } from "./firebase";
 import { Button, makeStyles, Modal, TextField } from "@material-ui/core";
+import ImageUpload from "./ImageUpload";
 
 function getModalStyle() {
   const top = 50;
@@ -35,14 +36,56 @@ function App() {
   const [email, setemail] = useState("");
   const [username, setusername] = useState("");
   const [password, setpassword] = useState("");
+  const [user, setuser] = useState(null);
+  const [openSignin, setopenSignin] = useState(false);
 
   useEffect(() => {
-    db.collection("post").onSnapshot((snapshot) => {
-      setpost(snapshot.docs.map((doc) => ({ id: doc.id, post: doc.data() })));
+    const unsubscribe = auth.onAuthStateChanged((authuser) => {
+      if (authuser) {
+        setuser(authuser);
+        // if (authuser.displayName) {
+        // } else {
+        //   return authuser.updateProfile({
+        //     displayName: username,
+        //   });
+        // }
+      } else {
+        setuser(null);
+      }
     });
+    return () => {
+      unsubscribe();
+    };
+  }, [user, username]);
+
+  useEffect(() => {
+    db.collection("post")
+      .orderBy("timestamp", "desc")
+      .onSnapshot((snapshot) => {
+        setpost(snapshot.docs.map((doc) => ({ id: doc.id, post: doc.data() })));
+      });
   }, []);
+
   const signup = (e) => {
     e.preventDefault();
+    auth
+      .createUserWithEmailAndPassword(email, password)
+      .then((authuser) => {
+        return authuser.user.updateProfile({
+          displayName: username,
+        });
+      })
+      .catch((err) => alert(err.message));
+
+    setopen(false);
+  };
+
+  const signin = (e) => {
+    e.preventDefault();
+    auth
+      .signInWithEmailAndPassword(email, password)
+      .catch((err) => alert(err.message));
+    setopenSignin(false);
   };
 
   return (
@@ -70,22 +113,20 @@ function App() {
 
             <TextField
               className="app__signup-textfield"
-              id="outlined-secondary"
+              id="outlined-secondary bun"
               label="Enter username"
               variant="outlined"
               color="secondary"
-              type="email"
               value={username}
               onChange={(e) => setusername(e.target.value)}
             />
             <TextField
               className="app__signup-textfield"
               type="password"
-              id="outlined-secondary"
+              id="outlined-password-input"
               label="Enter password"
               variant="outlined"
               color="secondary"
-              type="email"
               value={password}
               onChange={(e) => setpassword(e.target.value)}
             />
@@ -96,23 +137,76 @@ function App() {
           </form>
         </div>
       </Modal>
+
+      <Modal open={openSignin} onClose={() => setopenSignin(false)}>
+        <div style={modalStyle} className={classes.paper}>
+          <form className="app__signup">
+            <center>
+              <img
+                className="app__header-image"
+                src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
+                alt=""
+              />
+            </center>
+            <TextField
+              className="app__signup-textfield"
+              id="outlined-secondary"
+              label="Enter email"
+              variant="outlined"
+              color="secondary"
+              type="email"
+              value={email}
+              onChange={(e) => setemail(e.target.value)}
+            />
+
+            <TextField
+              className="app__signup-textfield"
+              type="password"
+              id="outlined-password-input"
+              label="Enter password"
+              variant="outlined"
+              color="secondary"
+              value={password}
+              onChange={(e) => setpassword(e.target.value)}
+            />
+
+            <Button type="submit" onClick={signin}>
+              signin
+            </Button>
+          </form>
+        </div>
+      </Modal>
       <div className="app__header">
         <img
           className="app__header-image"
           src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
           alt=""
         />
+        {user ? (
+          <Button onClick={() => auth.signOut()}>Logout</Button>
+        ) : (
+          <div>
+            <Button onClick={() => setopenSignin(true)}>Signin</Button>
+            <Button onClick={() => setopen(true)}>Signup</Button>
+          </div>
+        )}
       </div>
-      <Button onClick={() => setopen(true)}>Sign up</Button>
+      <div className="app__posts">
+        {post.map(({ id, post }) => (
+          <Post
+            key={id}
+            username={post.username}
+            caption={post.caption}
+            imageurl={post.imageurl}
+          />
+        ))}
+      </div>
 
-      {post.map(({ id, post }) => (
-        <Post
-          key={id}
-          username={post.username}
-          caption={post.caption}
-          imageurl={post.imageurl}
-        />
-      ))}
+      {user?.displayName ? (
+        <ImageUpload username={user.displayName} />
+      ) : (
+        <h3>Sorry! please Login to upload</h3>
+      )}
     </div>
   );
 }

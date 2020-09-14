@@ -14,6 +14,15 @@
   display: flex;
   border-bottom: 1px solid lightgray;
   object-fit: contain;
+  justify-content: space-between;
+}
+
+.app__posts {
+  padding: 16px;
+}
+
+.app__header-image {
+  object-fit: contain;
 }
 
 .app__signup {
