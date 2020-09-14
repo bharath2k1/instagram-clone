@@ -5,6 +5,7 @@ import "./App.css";
 import { db, auth } from "./firebase";
 import { Button, makeStyles, Modal, TextField } from "@material-ui/core";
 import ImageUpload from "./ImageUpload";
+import InstagramEmbed from "react-instagram-embed";
 
 function getModalStyle() {
   const top = 50;
@@ -38,6 +39,7 @@ function App() {
   const [password, setpassword] = useState("");
   const [user, setuser] = useState(null);
   const [openSignin, setopenSignin] = useState(false);
+  const [comments, setcomments] = useState("");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((authuser) => {
@@ -192,14 +194,31 @@ function App() {
         )}
       </div>
       <div className="app__posts">
-        {post.map(({ id, post }) => (
-          <Post
-            key={id}
-            username={post.username}
-            caption={post.caption}
-            imageurl={post.imageurl}
+        <div className="app__post-left">
+          {post.map(({ id, post }) => (
+            <Post
+              key={id}
+              postid={id}
+              username={post.username}
+              caption={post.caption}
+              imageurl={post.imageurl}
+            />
+          ))}
+        </div>
+        <div className="app__post-right">
+          <InstagramEmbed
+            url="https://www.instagram.com/p/CE117-EgOBy/"
+            maxWidth={320}
+            hideCaption={false}
+            containerTagName="div"
+            protocol=""
+            injectScript
+            onLoading={() => {}}
+            onSuccess={() => {}}
+            onAfterRender={() => {}}
+            onFailure={() => {}}
           />
-        ))}
+        </div>
       </div>
 
       {user?.displayName ? (
